@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Mapper (1.5 Spacing)</title>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- SECURITY STYLES: DISABLE SELECTION --- */
+        body { 
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
+        }
+        /* Allow selection only in textareas/inputs so users can still type */
+        input, textarea {
+            -webkit-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        /* ------------------------------------------ */
+
+        :root { --bg: #111; --card: #1a1a1a; --border: #333; --accent: #3291ff; --text: #fff; --text-dim: #888; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); }
+        
+        .navbar { border-bottom: 1px solid var(--border); padding: 15px 30px; display: flex; align-items: center; gap: 10px; background: var(--card); }
+        .badge { background: #8e44ad; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+
+        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+        
+        .step-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        .step-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #222; }
+        .step-title { font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .step-num { background: var(--accent); color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; }
+        
+        .step-content { padding: 30px; display: none; }
+        .step-content.active { display: block; animation: slideDown 0.3s ease-out; }
+
+        textarea { width: 100%; height: 200px; background: #000; color: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 15px; font-family: monospace; font-size: 14px; resize: vertical; box-sizing: border-box; }
+        
+        .btn { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .btn:hover { background: #0070f3; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { border-color: #666; }
+
+        .preview-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        .preview-table th { text-align: left; color: var(--text-dim); padding: 10px; border-bottom: 1px solid var(--border); }
+        .preview-table td { padding: 10px; border-bottom: 1px solid #222; color: #ddd; }
+
+        .upload-zone { border: 2px dashed var(--border); padding: 40px; text-align: center; border-radius: 8px; cursor: pointer; transition: 0.2s; background: #151515; }
+        .upload-zone:hover { border-color: var(--accent); }
+        .upload-zone.has-file { border-color: #27ae60; background: #0f291a; }
+
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; background: #222; padding: 20px; border-radius: 8px; }
+        .config-item label { display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 0.9rem; }
+        .config-row { display: flex; gap: 10px; margin-top: 5px; }
+        .config-row div { flex: 1; }
+        .config-item input { background: #000; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box; }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body oncontextmenu="return false;"> <div class="navbar">
+    <div style="font-weight: 800; font-size: 1.2rem;">📊 Quiz Mapper</div>
+    <div class="badge">Fixed 1.5 Spacing</div>
+</div>
+
+<div class="container">
+    
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(1)">
+            <div class="step-title"><span class="step-num">1</span> Paste Data</div>
+            <span>⌄</span>
+        </div>
+        <div id="step1" class="step-content active">
+            <textarea id="rawInput" placeholder="Paste Subheading (Col A) and Body (Col B)..."></textarea>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="parseData()">Parse & Preview &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(2)">
+            <div class="step-title"><span class="step-num">2</span> Preview</div>
+            <span>⌄</span>
+        </div>
+        <div id="step2" class="step-content">
+            <div id="previewStatus">No data loaded.</div>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="preview-table">
+                    <thead><tr><th width="30%">Subheading</th><th>Body Text</th></tr></thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <button class="btn btn-outline" onclick="toggleStep(1)">&larr; Back</button>
+                <button class="btn" onclick="toggleStep(3)">Next: Upload Template &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(3)">
+            <div class="step-title"><span class="step-num">3</span> Upload Template & Download</div>
+            <span>⌄</span>
+        </div>
+        <div id="step3" class="step-content">
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 2rem;">📁</div>
+                <div>Click to upload Template Image</div>
+                <div id="fileName" style="margin-top: 15px; color: #27ae60; font-weight: bold;"></div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile()">
+
+            <div class="config-grid">
+                <div class="config-item">
+                    <strong style="color: #FFC000;">Subheading (Yellow)</strong>
+                    <div class="config-row">
+                        <div><label>X (Left)</label><input type="number" id="titleX" value="2.72" step="0.01" onchange="autoWidth()"></div>
+                        <div><label>Y (Top)</label><input type="number" id="titleY" value="0.70" step="0.01"></div>
+                    </div>
+                    <div class="config-row">
+                        <div><label>Width</label><input type="number" id="titleW" value="6.8" step="0.1"></div>
+                        <div><label>Size</label><input type="number" id="titleSize" value="18"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <strong>Body Text (White)</strong>
+                    <div class="config-row">
+                        <div><label>X (Left)</label><input type="number" id="bodyX" value="2.72" step="0.01" onchange="autoWidth()"></div>
+                        <div><label>Y (Top)</label><input type="number" id="bodyY" value="1.4" step="0.01"></div>
+                    </div>
+                    <div class="config-row">
+                        <div><label>Width</label><input type="number" id="bodyW" value="6.8" step="0.1"></div>
+                        <div><label>Size</label><input type="number" id="bodySize" value="18"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <p style="text-align:center; font-size:0.8rem; color:#666; margin-top:10px;">
+                Line Spacing is set to <strong>1.5</strong> automatically.
+            </p>
+
+            <div style="margin-top: 30px; text-align: center;">
+                <button class="btn" onclick="generatePPTX()">Download PowerPoint (.pptx)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Prevent Right Click
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Prevent F12, Ctrl+U, Ctrl+S, Ctrl+Shift+I (DevTools)
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123) { return false; } // F12
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)){ return false; } // Ctrl+Shift+I
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)){ return false; } // Ctrl+Shift+C
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)){ return false; } // Ctrl+Shift+J
+        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)){ return false; } // Ctrl+U
+    }
+</script>
+
+<script>
+    let parsedRows = [];
+    let bgImage = null;
+
+    function toggleStep(step) {
+        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+    }
+
+    // Auto-width logic (Only runs if you change the X position)
+    function autoWidth() {
+        try {
+            const maxWidth = 13.33; 
+            const tX = parseFloat(document.getElementById('titleX').value) || 0;
+            const bX = parseFloat(document.getElementById('bodyX').value) || 0;
+            
+            const newTitleW = Math.max(4, maxWidth - tX - 0.5);
+            const newBodyW = Math.max(4, maxWidth - bX - 0.5);
+
+            document.getElementById('titleW').value = newTitleW.toFixed(1);
+            document.getElementById('bodyW').value = newBodyW.toFixed(1);
+        } catch(e) { console.warn("Auto-width calculation failed"); }
+    }
+
+    function parseData() {
+        try {
+            const input = document.getElementById('rawInput').value;
+            if (!input.trim()) return alert("Please paste data first!");
+
+            parsedRows = [];
+            const lines = input.split('\n');
+            const tbody = document.getElementById('previewBody');
+            tbody.innerHTML = '';
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                let cols = line.split('\t');
+                if (cols.length < 2) cols = [line, ""]; 
+
+                parsedRows.push({ title: cols[0] || "", body: cols[1] || "" });
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${cols[0]}</td><td>${(cols[1] || "").substring(0, 60)}...</td>`;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('previewStatus').innerText = `✅ Ready to generate ${parsedRows.length} slides.`;
+            toggleStep(2);
+
+        } catch (error) {
+            alert("Error reading data: " + error.message);
+        }
+    }
+
+    function handleFile() {
+        const file = document.getElementById('fileInput').files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => { 
+                bgImage = e.target.result; 
+                document.getElementById('fileName').innerText = "✅ Loaded: " + file.name;
+                document.getElementById('dropZone').classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function generatePPTX() {
+        try {
+            const pptx = new PptxGenJS();
+            pptx.layout = 'LAYOUT_16x9'; 
+
+            const tX = parseFloat(document.getElementById('titleX').value);
+            const tY = parseFloat(document.getElementById('titleY').value);
+            const tW = parseFloat(document.getElementById('titleW').value);
+            const tSz = parseInt(document.getElementById('titleSize').value);
+            
+            const bX = parseFloat(document.getElementById('bodyX').value);
+            const bY = parseFloat(document.getElementById('bodyY').value);
+            const bW = parseFloat(document.getElementById('bodyW').value);
+            const bSz = parseInt(document.getElementById('bodySize').value);
+
+            // CHANGED: 1.5 Line Spacing (Font Size * 1.5)
+            const spacingVal = bSz * 1.5; 
+
+            parsedRows.forEach(row => {
+                let slide = pptx.addSlide();
+                
+                if (bgImage) slide.background = { data: bgImage };
+                else slide.background = { color: "111111" };
+
+                // Heading
+                slide.addText(row.title, {
+                    x: tX, y: tY, w: tW, h: 1,
+                    fontSize: tSz, fontFace: "Kalpurush", color: "FFC000", bold: true
+                });
+
+                // Body
+                if (row.body) {
+                    let bullets = row.body.split('\n').filter(l => l.trim());
+                    if(bullets.length === 0) bullets = [row.body];
+
+                    let textItems = bullets.map(txt => ({
+                        text: txt,
+                        options: { 
+                            fontSize: bSz, 
+                            fontFace: "Kalpurush", 
+                            color: "FFFFFF", 
+                            breakLine: true,
+                            // Applied 1.5 spacing
+                            lineSpacing: spacingVal
+                        }
+                    }));
+
+                    slide.addText(textItems, {
+                        x: bX, y: bY, w: bW, h: 5.0,
+                        align: 'left', valign: 'top',
+                        bullet: { type: 'bull', code: '2022' },
+                        wrap: true
+                    });
+                }
+            });
+
+            pptx.writeFile({ fileName: "Fixed-Spacing-Slides.pptx" });
+        } catch (e) {
+            alert("Error generating slides: " + e.message);
+        }
+    }
+</script>
+
+</body>
+</html>
